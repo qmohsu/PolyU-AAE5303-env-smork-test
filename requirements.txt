@@ -1,0 +1,6 @@
+numpy>=1.23
+scipy>=1.9
+matplotlib>=3.5
+opencv-python>=4.7
+open3d==0.18.0
+

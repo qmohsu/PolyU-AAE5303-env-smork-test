@@ -1,0 +1,16 @@
+# Python / venv artifacts
+__pycache__/
+.venv/
+*.pyc
+
+# ROS 2 colcon outputs
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Generated data
+data/sample_pointcloud_copy.pcd
+
+# Misc
+.DS_Store
+
