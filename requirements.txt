@@ -1,6 +1,8 @@
-numpy>=1.23
-scipy>=1.9
-matplotlib>=3.5
-opencv-python>=4.7
-open3d==0.18.0
+numpy>=2.0,<3
+scipy>=1.13
+matplotlib>=3.8
+opencv-python>=4.10
+# Open3D 0.18.0 is not compatible with NumPy 2.x and may segfault.
+# Open3D 0.19.0 adds official NumPy 2.x support.
+open3d==0.19.0
 

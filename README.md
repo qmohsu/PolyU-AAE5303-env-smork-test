@@ -1,11 +1,22 @@
-# AAE5303 Environment Check
+# AAE5303 Environment Check (ROS + Python)
 
-This repository is a **single command post** for verifying that your Ubuntu + ROS 2 + Python toolchain is ready for AAE5303. If you can:
+This repository is a **teaching-friendly, single-entry environment validation suite** for AAE5303.
 
-1. Run the Python smoke tests inside `scripts/`; and
-2. Build + launch the ROS 2 talker/listener inside `ros2_ws/`;
+The goal is not only to detect missing dependencies, but to run **real, functional smoke tests** so students can see what “a working environment” looks like.
 
-…then you have everything we need for the coursework.
+If you can:
+
+1. Run the one-command smoke tests in `scripts/`; and
+2. Build + run the ROS 2 talker/listener package in `ros2_ws/`;
+
+then your machine is ready for the coursework.
+
+---
+
+## Who should use this repo
+
+- Students: run the one-command smoke tests and fix anything that fails **before** starting the labs.
+- Teaching staff: use this as a standardized checklist to diagnose student setup issues.
 
 ---
 
@@ -14,6 +25,8 @@ This repository is a **single command post** for verifying that your Ubuntu + RO
 ```
 aae5303-env-check/
 ├── README.md
+├── requirements.txt
+├── .gitignore
 ├── data/
 │   ├── sample_image.png
 │   └── sample_pointcloud.pcd
@@ -21,113 +34,260 @@ aae5303-env-check/
 │   └── src/
 │       └── env_check_pkg/
 │           ├── CMakeLists.txt
+│           ├── package.xml
 │           ├── launch/
 │           │   └── env_check.launch.py
-│           ├── package.xml
 │           └── src/
-│               ├── listener.cpp
-│               └── talker.cpp
+│               ├── talker.cpp
+│               └── listener.cpp
 └── scripts/
-    ├── test_open3d_pointcloud.py
-    └── test_python_env.py
+    ├── run_smoke_tests.py
+    ├── test_python_env.py
+    └── test_open3d_pointcloud.py
 ```
 
 ---
 
-## 1. Prerequisites
+## Supported environments
 
-| Component | Version | Installation hint |
-|-----------|---------|-------------------|
-| Ubuntu | 22.04 LTS | Native, dual‑boot, WSL2, or VM |
-| ROS 2 | Humble (desktop) | Follow the [ROS 2 Humble guide](https://docs.ros.org/en/humble/Installation.html) |
-| Python | 3.10+ | Ships with Ubuntu 22.04 |
-| Build tools | `colcon`, `clang`/`gcc`, `cmake` | `sudo apt install build-essential cmake python3-colcon-common-extensions` |
-| Python packages | `numpy`, `scipy`, `matplotlib`, `open3d`, `opencv-python` | `pip install -r requirements.txt` *(or install manually)* |
+This repo is designed for:
 
-> ⚠️ The repo **does not** install ROS 2 or Python dependencies automatically. Install them first, then return here.
+- Ubuntu 22.04 (native or WSL2)
+- Python 3.10+
+- ROS 2 Humble (recommended) **or** ROS 1 Noetic (acceptable)
+
+Notes:
+
+- If you are using Docker/minimal images, ROS installation and apt repositories may differ. Read the troubleshooting section.
+- If you have both ROS 1 and ROS 2 installed, do **not** source them in the same shell.
 
 ---
 
-## 2. Python smoke tests
+## Prerequisites (system-level)
 
-### 2.1 Create (optional) virtual environment
+### Ubuntu packages (recommended)
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake
+```
+
+### ROS installation (required: ROS 2 or ROS 1)
+
+You must have at least one of the following installed and sourced correctly:
+
+- ROS 2 Humble: see the official [ROS 2 Humble installation guide](https://docs.ros.org/en/humble/Installation.html)
+- ROS 1 Noetic: see the official [ROS 1 Noetic installation guide](https://wiki.ros.org/noetic/Installation/Ubuntu)
+
+This repo intentionally validates ROS **functionally**:
+
+- ROS 2: build and run the course talker/listener package
+- ROS 1: start `roscore` and query the ROS graph (`rosnode`/`rostopic`)
+
+---
+
+## Python dependencies (NumPy 2.x route)
+
+This repository intentionally targets **NumPy 2.x**.
+
+Why:
+
+- Students often have NumPy 2.x installed already (newer Python environments).
+- Open3D 0.18.0 + NumPy 2.x is a common cause of native crashes (segfaults).
+- Open3D 0.19.0 adds official NumPy 2.x support.
+
+Therefore, `requirements.txt` pins:
+
+- `numpy>=2,<3`
+- `open3d==0.19.0`
+
+---
+
+## Quick start (recommended workflow)
+
+### Step 1: Create and activate a virtual environment
 
 ```bash
 cd ~/aae5303-env-check
 python3 -m venv .venv
 source .venv/bin/activate
-pip install --upgrade pip
-pip install numpy scipy matplotlib open3d opencv-python
+python -m pip install --upgrade pip
 ```
 
-### 2.2 Validate the interpreter + packages
+### Step 2: Install Python requirements
 
 ```bash
-python scripts/test_python_env.py
+python -m pip install -r requirements.txt
 ```
 
-What the script does:
-
-- Ensures Python ≥ 3.10.
-- Checks `numpy`, `scipy`, `matplotlib`, `opencv-python`, `open3d`, and (optionally) `rclpy`.
-- Runs small computations (matrix multiply, FFT, random plotting backend check) so imports are not the only signal.
-- Verifies that CLI tooling such as `ros2` and `colcon` is on your `$PATH`.
-- Loads `data/sample_image.png` via OpenCV to catch codec issues.
-
-You should see **“All checks passed”**. Any failure prints a remediation hint and the script exits with a non-zero code.
-
-### 2.3 Validate Open3D I/O with a real point cloud
+### Step 3: Run the one-command smoke test suite
 
 ```bash
-python scripts/test_open3d_pointcloud.py
+python scripts/run_smoke_tests.py
 ```
 
-This script uses `open3d.io.read_point_cloud` to load `data/sample_pointcloud.pcd`, computes bounding boxes and centroid statistics, and writes a filtered copy to `data/sample_pointcloud_copy.pcd`. It is modeled after the official Open3D I/O examples and ensures both the Python binding and shared libraries are functional.
+Expected result:
+
+- **OVERALL RESULT: PASS**
+- If anything fails, the output includes an actionable remediation hint.
+
+Important:
+
+- The runner cleans up small generated files in `data/` automatically.
+- If ROS is not installed or not sourced, the suite will fail (by design).
 
 ---
 
-## 3. ROS 2 talker/listener workspace
+## What the tests do (detailed)
 
-1. **Setup environment**
+### `scripts/run_smoke_tests.py`
 
-   ```bash
-   cd ~/aae5303-env-check/ros2_ws
-   source /opt/ros/humble/setup.bash
-   ```
+This is the recommended entry point for students. It:
 
-2. **Build**
+- runs each test script in a subprocess (so native crashes are reported as readable failures)
+- prints step headers, command lines, and timing
+- prints a final **OVERALL RESULT: PASS/FAIL**
+- cleans up generated artifacts
 
-   ```bash
-   colcon build --packages-select env_check_pkg
-   ```
+### `scripts/test_python_env.py`
 
-3. **Source workspace**
+This script runs a **teaching-oriented, step-by-step report**. It intentionally keeps running after failures so you get a full diagnostic summary.
 
-   ```bash
-   source install/setup.bash
-   ```
+It checks:
 
-4. **Launch both nodes**
+1. Environment snapshot (platform, Python, key ROS environment variables)
+2. Python version (must be ≥ 3.10)
+3. Python imports:
+   - required: `numpy`, `scipy`, `matplotlib`, `opencv-python`
+   - optional: `rclpy` (useful for ROS 2 Python exercises)
+4. NumPy computation sanity check
+5. SciPy FFT sanity check
+6. Matplotlib headless backend check (writes a tiny image)
+7. OpenCV PNG decode test (subprocess; validates `data/sample_image.png`)
+8. Open3D native-extension test (subprocess; validates:
+   - basic geometry operations
+   - point cloud I/O with `data/sample_pointcloud.pcd`
+9. ROS toolchain checks (functional):
+   - If ROS 2 is detected:
+     - require `colcon`
+     - build `ros2_ws/` package `env_check_pkg`
+     - run `ros2 launch env_check_pkg env_check.launch.py` briefly
+     - verify talker/listener exchanged messages (looks for `Publishing:` and `I heard:`)
+   - Else if ROS 1 is detected:
+     - start `roscore` briefly
+     - probe the ROS graph using `rosnode list` and/or `rostopic list`
+10. Basic CLI checks (e.g. `python3`)
 
-   ```bash
-   ros2 launch env_check_pkg env_check.launch.py
-   ```
+### `scripts/test_open3d_pointcloud.py`
 
-Expected terminal output:
+This script validates Open3D I/O + geometry using a real PCD file:
 
-- `env_check_pkg_talker` logs `Publishing: "AAE5303 hello #<n>"` at 2 Hz.
-- `env_check_pkg_listener` logs `I heard: "AAE5303 hello #<n>"`.
-
-Stop with `Ctrl+C`. If you prefer separate terminals, run `ros2 run env_check_pkg talker` and `ros2 run env_check_pkg listener`.
+- reads `data/sample_pointcloud.pcd`
+- computes centroid and axis-aligned bounds
+- filters points and writes `data/sample_pointcloud_copy.pcd`
+- reloads the file and computes bounding boxes
 
 ---
 
-## 4. Troubleshooting
+## ROS 2 workspace: manual build + run (recommended for learning)
 
-- **Missing Python packages**: activate your virtual environment (if any) and rerun `pip install ...`. The smoke tests re-print helpful `pip install` commands for every missing module.
-- **`ros2` or `colcon` not found**: ensure `/opt/ros/humble/bin` is on your `PATH` (add `source /opt/ros/humble/setup.bash` to your shell profile).
-- **Build errors**: delete the workspace build artifacts (`rm -rf build install log`) and rebuild after sourcing ROS 2.
-- **Open3D cannot load shared library**: install from pip wheels (`pip install open3d==0.18.0`) or from apt if available. Refer to the [Open3D installation guide](https://www.open3d.org/docs/release/getting_started.html).
+Run in a clean shell where ROS 2 is sourced:
 
-If your results differ from the expectations above, capture the full console output and reach out on the course forum—we can help interpret the failure signal.
+```bash
+cd ~/aae5303-env-check/ros2_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select env_check_pkg
+source install/setup.bash
+ros2 launch env_check_pkg env_check.launch.py
+```
+
+What you should see:
+
+- talker prints `Publishing: 'AAE5303 hello #<n>'` at ~2 Hz
+- listener prints `I heard: 'AAE5303 hello #<n>'`
+
+---
+
+## Passing criteria (for students)
+
+You pass the environment check only if:
+
+- `python scripts/run_smoke_tests.py` ends with **OVERALL RESULT: PASS**
+
+This implies:
+
+- Python scientific stack is installed and functional
+- OpenCV can decode PNGs
+- Open3D works with NumPy 2.x (no segfaults)
+- At least one ROS toolchain (ROS 2 or ROS 1) is installed and usable
+
+---
+
+## Common pitfalls and fixes (very common student issues)
+
+### Mixed ROS 1 and ROS 2 in the same shell
+
+Do **not** source ROS 1 and ROS 2 in the same terminal session.
+
+Fix:
+
+1. Open a new terminal.
+2. Source exactly one:
+   - ROS 2: `source /opt/ros/humble/setup.bash`
+   - ROS 1: `source /opt/ros/noetic/setup.bash`
+
+### `colcon` not found
+
+If ROS 2 is your toolchain, `colcon` is required.
+
+Ubuntu/WSL2:
+
+```bash
+sudo apt update
+sudo apt install python3-colcon-common-extensions
+```
+
+If apt says `Unable to locate package python3-colcon-common-extensions`, enable the Ubuntu `universe` repository:
+
+```bash
+sudo apt install -y software-properties-common
+sudo add-apt-repository universe
+sudo apt update
+sudo apt install python3-colcon-common-extensions
+```
+
+Docker/minimal images:
+
+```bash
+python -m pip install -U colcon-common-extensions
+```
+
+### Open3D segfaults
+
+This is almost always an ABI mismatch (e.g., old Open3D with NumPy 2.x).
+
+Fix:
+
+1. Create a fresh venv.
+2. Reinstall requirements:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+---
+
+## Teaching staff checklist
+
+Ask students to paste the full output of:
+
+```bash
+python scripts/run_smoke_tests.py
+```
+
+Do not accept partial screenshots; the full output is the fastest way to diagnose:
+
+- missing ROS installation vs not-sourced environment
+- ABI issues (native crashes) vs Python import issues
+- workspace build failures vs runtime message exchange failures
 

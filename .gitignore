@@ -1,3 +1,18 @@
+__pycache__/
+*.pyc
+*.pyo
+
+.venv/
+venv/
+
+# Smoke-test outputs
+data/sample_pointcloud_copy.pcd
+data/_tmp*.pcd
+
+# ROS 2 colcon build artifacts
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
 # Python / venv artifacts
 __pycache__/
 .venv/
