@@ -1,6 +1,6 @@
 # AAE5303 Environment Check (ROS + Python)
 
-This repository is a **teaching-friendly, single-entry environment validation suite** for AAE5303.
+This repository is a **single command post** for verifying that your Ubuntu + ROS 2 + Python toolchain is ready for AAE5303. If you can:
 
 The goal is not only to detect missing dependencies, but to run **real, functional smoke tests** so students can see what “a working environment” looks like.
 
